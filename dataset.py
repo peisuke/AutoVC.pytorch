@@ -11,24 +11,22 @@ from utils.dsp import load_wav
 from utils.dsp import melspectrogram
 
 class AudiobookDataset(torch.utils.data.Dataset):
-    def __init__(self, input_path, train=False):
-        self.path = input_path
+    def __init__(self, input_data, train=False):
+        self.data = []
+        for s, filenames in input_data.items():
+            for f in filenames:
+                self.data.append({'file': f, 'speaker': s})
 
     def __getitem__(self, index):
-        p = self.path[index]
-        #m = np.load(p['mel'])
-        #x = np.load(p['quant'])
+        p = self.data[index]
         f = p['file']
         
         wav = load_wav(f)
-        #mel = melspectrogram(wav)
-        #quant = wav * (2**15 - 0.5) - 0.5
-        #return mel.astype(np.float32), quant.astype(np.int16)        
            
         return wav, f
 
     def __len__(self):
-        return len(self.path)
+        return len(self.data)
 
 def pad_seq(x, base=32):
     len_out = int(base * math.ceil(float(x.shape[1])/base))

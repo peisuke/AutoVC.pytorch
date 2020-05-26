@@ -25,7 +25,7 @@ def save_checkpoint(device, model, style_enc, optimizer, checkpoint_dir, epoch):
 
 def train(args, model, style_enc, device, train_loader, optimizer, epoch, sigma=1.0):
     model.train()
-    tram_loss = 0
+    train_loss = 0
 
     for batch_idx, (m, _, _) in enumerate(train_loader):
         m = m.to(device)
@@ -49,11 +49,12 @@ def train(args, model, style_enc, device, train_loader, optimizer, epoch, sigma=
         loss.backward()
         optimizer.step()
 
-        train_loss += loss.item()
+        train_loss += loss.item() * len(m)
 
-        print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-            epoch, batch_idx * len(m), len(train_loader.dataset),
-            100. * batch_idx / len(train_loader), loss.item()))
+        if batch_idx % 10 == 0:
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                epoch, batch_idx * len(m), len(train_loader.dataset),
+                100. * batch_idx / len(train_loader), loss.item()))
     
     train_loss /= len(train_loader.dataset)
     print('\nTrain set: Average loss: {:.4f}\n'.format(train_loss))
@@ -64,7 +65,8 @@ def test(model, device, test_loader, checkpoint_dir, epoch, sigma=1.0):
     test_loss = 0
 
     with torch.no_grad():
-        for m, _, fname in test_loader:
+        for batch_idx, (m, _, fname) in enumerate(test_loader):
+            m = m.to(device)
             m = m.transpose(2,1)
             emb = style_enc(m)
             mel_outputs, mel_outputs_postnet, codes = model(m, emb, emb)
@@ -78,6 +80,10 @@ def test(model, device, test_loader, checkpoint_dir, epoch, sigma=1.0):
             L_content = torch.abs(codes - codes_rec).mean()
 
             loss = L_recon + L_recon0 + L_content
+
+            print('Val Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                epoch, batch_idx * len(m), len(test_loader.dataset),
+                100. * batch_idx / len(test_loader), loss.item()))
             test_loss += loss.item()
 
         test_loss /= len(test_loader.dataset)
@@ -88,7 +94,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--data', type=str, default='./data', help='dataset directory')
     parser.add_argument('--epochs', type=int, default=10000,
                         help='number of epochs to train (default: 14)')
-    parser.add_argument('--batch-size', type=int, default=96, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=16, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--lr', type=float, default=4e-4, metavar='LR',
                         help='learning rate (default: 1.0)')
@@ -108,19 +114,19 @@ if __name__ == '__main__':
 
     torch.autograd.set_detect_anomaly(True)
     
-    with open(os.path.join(data_path, 'train.json'), 'r') as f:
-        train_index = json.load(f)
+    with open(os.path.join(data_path, 'train_files.json'), 'r') as f:
+        train_data = json.load(f)
 
-    with open(os.path.join(data_path, 'test.json'), 'r') as f:
-        test_index = json.load(f)
+    with open(os.path.join(data_path, 'seen_test_files.json'), 'r') as f:
+        test_data = json.load(f)
 
     train_loader = torch.utils.data.DataLoader(
-        AudiobookDataset(train_index),
+        AudiobookDataset(train_data),
         collate_fn=train_collate,
         batch_size=args.batch_size, shuffle=True, **kwargs)
 
     test_loader = torch.utils.data.DataLoader(
-        AudiobookDataset(test_index),
+        AudiobookDataset(test_data),
         collate_fn=test_collate,
         batch_size=1, shuffle=False, **kwargs)
 
