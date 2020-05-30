@@ -11,19 +11,23 @@ from utils.dsp import load_wav
 from utils.dsp import melspectrogram
 
 class AudiobookDataset(torch.utils.data.Dataset):
-    def __init__(self, input_data, train=False):
-        self.data = []
-        for s, filenames in input_data.items():
-            for f in filenames:
-                self.data.append({'file': f, 'speaker': s})
+    def __init__(self, input_data, emb, train=False):
+        self.emb = emb
+        self.data = input_data
 
     def __getitem__(self, index):
         p = self.data[index]
-        f = p['file']
+        fs = p['files']
+        s = p['speaker']
         
+        f = random.choice(fs)
         wav = load_wav(f)
+        emb = self.emb[s]
+
+        if len(wav) < hp.seq_len:
+            wav = np.pad(wav, (0, hp.seq_len - len(wav)), mode='constant')
            
-        return wav, f
+        return wav, emb, f
 
     def __len__(self):
         return len(self.data)
@@ -36,37 +40,32 @@ def pad_seq(x, base=32):
 
 def train_collate(batch):
     mel_win = hp.seq_len // hp.hop_length
-    #max_offsets = [x[0].shape[-1] - (mel_win + 2 * pad) for x in batch]
-    #mel_offsets = [np.random.randint(0, offset) for offset in max_offsets]
-    #sig_offsets = [(offset + pad) * hp.hop_length for offset in mel_offsets]
     
-    max_offsets = [x[0].shape[-1] - hp.seq_len for x in batch]
+    max_offsets = [x[0].shape[-1] - hp.seq_len + 1 for x in batch]
+
     sig_offsets = [np.random.randint(0, offset) for offset in max_offsets]
-        
-    #mels = [x[0][:, mel_offsets[i]:mel_offsets[i] + mel_win] \
-    #        for i, x in enumerate(batch)]
 
     wav = [x[0][sig_offsets[i]:sig_offsets[i] + hp.seq_len] \
               for i, x in enumerate(batch)]
     
     mels = [melspectrogram(w[:-1]) for w in wav]
 
-    fname = [x[1] for x in batch]
+    emb = [x[1] for x in batch]
+    fname = [x[2] for x in batch]
 
     mels = torch.FloatTensor(mels)
-    wav = torch.FloatTensor(wav)
+    emb = torch.FloatTensor(emb)
     
-    #wav = 2 * wav[:, :hp.seq_len].float() / (2**hp.bits - 1.) - 1.
-    
-    return mels, wav, fname
+    return mels, emb, fname
 
 def test_collate(batch):
     wav = [x[0] for i, x in enumerate(batch)]
     mels = [pad_seq(melspectrogram(w))[0] for w in wav]
 
-    fname = [x[1] for x in batch]
+    emb = [x[1] for x in batch]
+    fname = [x[2] for x in batch]
 
     mels = torch.FloatTensor(mels)
-    wav = torch.FloatTensor(wav)
+    emb = torch.FloatTensor(emb)
     
-    return mels, wav, fname
+    return mels, emb, fname
