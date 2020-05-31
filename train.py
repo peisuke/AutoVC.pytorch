@@ -136,12 +136,7 @@ if __name__ == '__main__':
         collate_fn=test_collate,
         batch_size=1, shuffle=False, **kwargs)
 
-    dim_neck = 32
-    dim_emb = 256
-    dim_pre = 512
-    freq = 32
-
-    model = Generator(dim_neck, dim_emb, dim_pre, freq).to(device)
+    model = Generator(hp.dim_neck, hp.dim_emb, hp.dim_pre, hp.freq).to(device)
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     

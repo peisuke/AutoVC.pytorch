@@ -25,7 +25,7 @@ def compute_embed(files):
     emb = emb.mean(axis=0)
     return emb
 
-def create_data(data, phase):
+def create_data(data, phase, seq_len=None):
     ret = []
      
     for k, v in data.items():
@@ -35,16 +35,21 @@ def create_data(data, phase):
             os.makedirs(target_dir, exist_ok=True)
             x, _ = librosa.load(fname, sr=hp.sample_rate)
             
-            files = []
-            for i, p in enumerate(range(0, len(x), hp.seq_len)):
-                wav = x[p:p+hp.seq_len*2]
-                if len(wav) < hp.seq_len:
-                    wav = np.pad(wav, (0, hp.seq_len - len(wav)), mode='constant')
-                
-                filename = os.path.join(target_dir, '{0:04d}.wav'.format(i))                                        
-                librosa.output.write_wav(filename, wav, hp.sample_rate)
+            if seq_len is not None:
+                files = []
+                for i, p in enumerate(range(0, len(x), seq_len)):
+                    wav = x[p:p+seq_len*2]
+                    if len(wav) < seq_len:
+                        wav = np.pad(wav, (0, seq_len - len(wav)), mode='constant')
+
+                    filename = os.path.join(target_dir, '{0:04d}.wav'.format(i))                                        
+                    librosa.output.write_wav(filename, wav, hp.sample_rate)
+                    files.append(filename)
+            else:
+                filename = os.path.join(target_dir, '{0:04d}.wav'.format(0))                                        
+                librosa.output.write_wav(filename, x, hp.sample_rate)
                 files.append(filename)
-            
+
             ret.append({'files': files, 'speaker': k})
             
     return ret
@@ -80,7 +85,6 @@ if __name__ == '__main__':
         emb = compute_embed(wavfiles)
         speaker_emb[speaker] = emb.tolist()
    
-    '''
     train_data = {}
     test_data = {}
     unseen_data = {}
@@ -102,15 +106,13 @@ if __name__ == '__main__':
         wavfiles = sorted(glob.glob(os.path.join(s, '*.wav')))
         unseen_data[speaker] = wavfiles
 
-    train_data = create_data(train_data, 'train')
-    test_data = create_data(test_data, 'test')
-    unseen_data = create_data(unseen_data, 'unseen')
-    '''
+    train_data = create_data(train_data, 'train', hp.seq_len)
+    test_data = create_data(test_data, 'test', hp.seq_len)
+    unseen_data = create_data(unseen_data, 'unseen', hp.seq_len)
 
     with open(os.path.join(output_dir, 'speaker_emb.json'), 'w') as f:
         json.dump(speaker_emb, f)
    
-    '''
     with open(os.path.join(output_dir, 'train_data.json'), 'w') as f:
         json.dump(train_data, f)
 
@@ -119,4 +121,3 @@ if __name__ == '__main__':
 
     with open(os.path.join(output_dir, 'unseen_data.json'), 'w') as f:
         json.dump(unseen_data, f)
-    '''
