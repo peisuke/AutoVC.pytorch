@@ -11,7 +11,9 @@ from dataset import train_collate
 from dataset import test_collate
 from utils.dsp import save_wav
 import numpy as np
+from hparams import hparams as hp
 
+       
 def save_checkpoint(device, model, optimizer, checkpoint_dir, epoch):
     checkpoint_path = os.path.join(
         checkpoint_dir, "checkpoint_step{:06d}.pth".format(epoch))
@@ -22,6 +24,18 @@ def save_checkpoint(device, model, optimizer, checkpoint_dir, epoch):
         "epoch": epoch
     }, checkpoint_path)
     print("Saved checkpoint:", checkpoint_path)
+
+def load_checkpoint(path, model, device, optimizer, reset_optimizer=False):
+    print("Load checkpoint from: {}".format(path))
+    checkpoint = torch.load(path, map_location=device)
+    model.load_state_dict(checkpoint["model"])
+    if not reset_optimizer:
+        optimizer_state = checkpoint["optimizer"]
+        if optimizer_state is not None:
+            print("Load optimizer state from {}".format(path))
+            optimizer.load_state_dict(checkpoint["optimizer"])
+    epoch = checkpoint['epoch'] 
+    return epoch
 
 def train(args, model, device, train_loader, optimizer, epoch, sigma=1.0):
     model.train()
@@ -34,11 +48,9 @@ def train(args, model, device, train_loader, optimizer, epoch, sigma=1.0):
         model.zero_grad()
 
         m = m.transpose(2,1)
-        #emb = style_enc(m)
         mel_outputs, mel_outputs_postnet, codes = model(m, e, e)
 
         m_rec = mel_outputs_postnet
-        #emb_rec = style_enc(m_rec)
         codes_rec = model(m_rec, e, None)
 
         L_recon = ((mel_outputs_postnet - m) ** 2).mean()
@@ -61,6 +73,7 @@ def train(args, model, device, train_loader, optimizer, epoch, sigma=1.0):
     print('\nTrain set: Average loss: {:.4f}\n'.format(train_loss))
 
 def test(model, device, test_loader, checkpoint_dir, epoch, sigma=1.0):
+    print("Using averaged model for evaluation")
     model.eval()
    
     test_loss = 0
@@ -94,11 +107,13 @@ def test(model, device, test_loader, checkpoint_dir, epoch, sigma=1.0):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train or run some neural net')
     parser.add_argument('-d', '--data', type=str, default='./data', help='dataset directory')
-    parser.add_argument('--epochs', type=int, default=10000,
+    parser.add_argument('--checkpoint', type=str, default=None,
+                        help='The path to checkpoint')
+    parser.add_argument('--epochs', type=int, default=1000,
                         help='number of epochs to train (default: 14)')
-    parser.add_argument('--batch-size', type=int, default=16, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=8, metavar='N',
                         help='input batch size for training (default: 64)')
-    parser.add_argument('--lr', type=float, default=4e-4, metavar='LR',
+    parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
                         help='learning rate (default: 1.0)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
@@ -137,13 +152,16 @@ if __name__ == '__main__':
         batch_size=1, shuffle=False, **kwargs)
 
     model = Generator(hp.dim_neck, hp.dim_emb, hp.dim_pre, hp.freq).to(device)
-
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
+
+    current_epoch = 0
+    if args.checkpoint:
+        current_epoch = load_checkpoint(args.checkpoint, model, device, optimizer)
     
     checkpoint_dir = 'checkpoints'
     os.makedirs(checkpoint_dir, exist_ok=True)
 
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(current_epoch + 1, args.epochs + 1):
         print(f'epoch {epoch}')
         train(args, model, device, train_loader, optimizer, epoch)
 

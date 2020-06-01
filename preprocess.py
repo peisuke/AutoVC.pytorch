@@ -16,7 +16,7 @@ def compute_embed(files):
     encoder = VoiceEncoder()
     emb = []
     
-    files = random.sample(files, 20)
+    files = random.sample(files, min(len(files), 20))
     for f in tqdm.tqdm(files):
         wav = preprocess_wav(f)
         e = encoder.embed_utterance(wav)
@@ -68,6 +68,8 @@ if __name__ == '__main__':
     speakers = sorted(glob.glob(os.path.join(wav_dir, '*')))
     speakers = list(filter(lambda x: os.path.isdir(x), speakers))
 
+    #speakers = speakers[:10]
+
     random.seed(1234)
     random.shuffle(speakers)
     
@@ -82,6 +84,9 @@ if __name__ == '__main__':
     for s in speakers:
         speaker = os.path.basename(s)
         wavfiles = sorted(glob.glob(os.path.join(s, '*.wav')))
+
+        #wavfiles = wavfiles[:10]
+
         emb = compute_embed(wavfiles)
         speaker_emb[speaker] = emb.tolist()
    
@@ -92,6 +97,9 @@ if __name__ == '__main__':
     for s in seen_speakers:
         speaker = os.path.basename(s)
         wavfiles = sorted(glob.glob(os.path.join(s, '*.wav')))
+
+        #wavfiles = wavfiles[:10]
+
         nb_files = len(wavfiles)
         nb_test = nb_files // 10
 
@@ -104,6 +112,9 @@ if __name__ == '__main__':
     for s in unseen_speakers:
         speaker = os.path.basename(s)
         wavfiles = sorted(glob.glob(os.path.join(s, '*.wav')))
+
+        #wavfiles = wavfiles[:10]
+
         unseen_data[speaker] = wavfiles
 
     train_data = create_data(train_data, 'train', hp.seq_len)

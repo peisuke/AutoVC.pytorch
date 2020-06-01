@@ -18,7 +18,7 @@ class hparams:
     dim_emb = 256
     dim_pre = 512
     freq = 32
-
+    
     ## wavenet vocoder
     builder = 'wavenet'
     hop_size = 256
