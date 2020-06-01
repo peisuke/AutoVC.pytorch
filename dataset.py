@@ -5,8 +5,9 @@ import json
 import torch
 import torch.utils.data
 import numpy as np
-from hparams import hparams as hp
+from spec_augment import spec_augment
 
+from hparams import hparams as hp
 from utils.dsp import load_wav
 from utils.dsp import melspectrogram
 
@@ -48,14 +49,22 @@ def train_collate(batch):
     wav = [x[0][sig_offsets[i]:sig_offsets[i] + hp.seq_len] \
               for i, x in enumerate(batch)]
     
+    # volume augmentation
+    wav = [w * 2 ** (np.random.rand() * 2 - 1) for w in wav]
+    
     mels = [melspectrogram(w[:-1]) for w in wav]
-
+    
+    # spec augmentation
+    mels = [spec_augment(m) for m in mels]
+    
     emb = [x[1] for x in batch]
     fname = [x[2] for x in batch]
 
     mels = torch.FloatTensor(mels)
     emb = torch.FloatTensor(emb)
-    
+
+    mels = mels.transpose(2,1)
+
     return mels, emb, fname
 
 def test_collate(batch):
@@ -67,5 +76,7 @@ def test_collate(batch):
 
     mels = torch.FloatTensor(mels)
     emb = torch.FloatTensor(emb)
+    
+    mels = mels.transpose(2,1)
     
     return mels, emb, fname

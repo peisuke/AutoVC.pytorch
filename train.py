@@ -47,7 +47,6 @@ def train(args, model, device, train_loader, optimizer, epoch, sigma=1.0):
         
         model.zero_grad()
 
-        m = m.transpose(2,1)
         mel_outputs, mel_outputs_postnet, codes = model(m, e, e)
 
         m_rec = mel_outputs_postnet
@@ -83,7 +82,6 @@ def test(model, device, test_loader, checkpoint_dir, epoch, sigma=1.0):
             m = m.to(device)
             e = e.to(device)
             
-            m = m.transpose(2,1)            
             mel_outputs, mel_outputs_postnet, codes = model(m, e, e)
 
             m_rec = mel_outputs_postnet
@@ -128,7 +126,7 @@ if __name__ == '__main__':
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     
-    kwargs = {'num_workers': 8, 'pin_memory': True} if use_cuda else {}
+    kwargs = {'num_workers': 0, 'pin_memory': True} if use_cuda else {}
 
     torch.autograd.set_detect_anomaly(True)
     
