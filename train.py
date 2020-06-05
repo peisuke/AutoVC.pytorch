@@ -52,9 +52,9 @@ def train(args, model, device, train_loader, optimizer, epoch, sigma=1.0):
         m_rec = mel_outputs_postnet
         codes_rec = model(m_rec, e, None)
 
-        L_recon = ((mel_outputs_postnet - m) ** 2).mean()
-        L_recon0 = ((mel_outputs - m) ** 2).mean()
-        L_content = torch.abs(codes - codes_rec).mean()
+        L_recon = ((mel_outputs_postnet - m) ** 2).sum(dim=(1,2)).mean()
+        L_recon0 = ((mel_outputs - m) ** 2).sum(dim=(1,2)).mean()
+        L_content = torch.abs(codes - codes_rec).sum(dim=1).mean()
 
         loss = L_recon + L_recon0 + L_content
 
@@ -126,7 +126,7 @@ if __name__ == '__main__':
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     
-    kwargs = {'num_workers': 0, 'pin_memory': True} if use_cuda else {}
+    kwargs = {'num_workers': 8, 'pin_memory': True} if use_cuda else {}
 
     torch.autograd.set_detect_anomaly(True)
     
