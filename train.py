@@ -87,9 +87,9 @@ def test(model, device, test_loader, checkpoint_dir, epoch, sigma=1.0):
             m_rec = mel_outputs_postnet
             codes_rec = model(m_rec, e, None)
 
-            L_recon = ((mel_outputs_postnet - m) ** 2).mean()
-            L_recon0 = ((mel_outputs - m) ** 2).mean()
-            L_content = torch.abs(codes - codes_rec).mean()
+            L_recon = ((mel_outputs_postnet - m) ** 2).sum(dim=(1,2)).mean()
+            L_recon0 = ((mel_outputs - m) ** 2).sum(dim=(1,2)).mean()
+            L_content = torch.abs(codes - codes_rec).sum(dim=1).mean()
 
             loss = L_recon + L_recon0 + L_content
 
@@ -107,7 +107,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--data', type=str, default='./data', help='dataset directory')
     parser.add_argument('--checkpoint', type=str, default=None,
                         help='The path to checkpoint')
-    parser.add_argument('--epochs', type=int, default=1000,
+    parser.add_argument('--epochs', type=int, default=600,
                         help='number of epochs to train (default: 14)')
     parser.add_argument('--batch-size', type=int, default=8, metavar='N',
                         help='input batch size for training (default: 64)')
