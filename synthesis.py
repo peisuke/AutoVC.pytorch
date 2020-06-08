@@ -12,9 +12,6 @@ from hparams import hparams
 from wavenet_vocoder import builder
 
 torch.set_num_threads(4)
-use_cuda = torch.cuda.is_available()
-device = torch.device("cuda" if use_cuda else "cpu")
-
 
 def build_model():
     
@@ -41,7 +38,7 @@ def build_model():
 
 
 
-def wavegen(model, c=None, tqdm=tqdm):
+def wavegen(model, device, c=None, tqdm=tqdm):
     """Generate waveform samples by WaveNet.
     
     """
