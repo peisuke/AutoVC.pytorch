@@ -158,7 +158,7 @@ if __name__ == '__main__':
 
     for epoch in range(current_epoch + 1, args.epochs + 1):
         print(f'epoch {epoch}')
-        #train(args, model, device, train_loader, optimizer, epoch)
+        train(args, model, device, train_loader, optimizer, epoch)
 
         if epoch % 10 == 0:
             test(model, device, test_loader, checkpoint_dir, epoch)
