@@ -12,18 +12,17 @@ from utils.dsp import load_wav
 from utils.dsp import melspectrogram
 
 class AudiobookDataset(torch.utils.data.Dataset):
-    def __init__(self, input_data, emb, train=False):
-        self.emb = emb
+    def __init__(self, input_data, train=False):
         self.data = input_data
 
     def __getitem__(self, index):
         p = self.data[index]
-        fs = p['files']
-        s = p['speaker']
+        fs = p['wav']
+        e = p['emb']
         
         f = random.choice(fs)
         wav = load_wav(f)
-        emb = self.emb[s]
+        emb = np.load(e)
 
         if len(wav) < hp.seq_len:
             wav = np.pad(wav, (0, hp.seq_len - len(wav)), mode='constant')
@@ -65,18 +64,25 @@ def train_collate(batch):
 
     mels = mels.transpose(2,1)
 
-    return mels, emb, fname
+    return mels, emb
 
 def test_collate(batch):
-    wav = [x[0] for i, x in enumerate(batch)]
-    mels = [pad_seq(melspectrogram(w))[0] for w in wav]
-
-    emb = [x[1] for x in batch]
-    fname = [x[2] for x in batch]
+    wavs = []
+    embs = []
+    for b in batch:
+        wav = b[0]
+        for p in range(0, len(wav), hp.seq_len):
+            wav_seq = wav[p:p+hp.seq_len]
+            if len(wav_seq) < hp.seq_len:
+                wav_seq = np.pad(wav_seq, (0, hp.seq_len - len(wav_seq)), mode='constant')
+            wavs.append(wav_seq)
+            embs.append(b[1])
+    
+    mels = [pad_seq(melspectrogram(w))[0] for w in wavs]
 
     mels = torch.FloatTensor(mels)
-    emb = torch.FloatTensor(emb)
+    embs = torch.FloatTensor(embs)
     
     mels = mels.transpose(2,1)
     
-    return mels, emb, fname
+    return mels, embs

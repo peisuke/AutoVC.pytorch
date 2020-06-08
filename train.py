@@ -41,7 +41,7 @@ def train(args, model, device, train_loader, optimizer, epoch, sigma=1.0):
     model.train()
     train_loss = 0
 
-    for batch_idx, (m, e, _) in enumerate(train_loader):
+    for batch_idx, (m, e) in enumerate(train_loader):
         m = m.to(device)
         e = e.to(device)
         
@@ -78,7 +78,7 @@ def test(model, device, test_loader, checkpoint_dir, epoch, sigma=1.0):
     test_loss = 0
 
     with torch.no_grad():
-        for batch_idx, (m, e, fname) in enumerate(test_loader):
+        for batch_idx, (m, e) in enumerate(test_loader):
             m = m.to(device)
             e = e.to(device)
             
@@ -136,16 +136,13 @@ if __name__ == '__main__':
     with open(os.path.join(data_path, 'test_data.json'), 'r') as f:
         test_data = json.load(f)
 
-    with open(os.path.join(data_path, 'speaker_emb.json'), 'r') as f:
-        speaker_emb = json.load(f)
-
     train_loader = torch.utils.data.DataLoader(
-        AudiobookDataset(train_data, speaker_emb),
+        AudiobookDataset(train_data),
         collate_fn=train_collate,
         batch_size=args.batch_size, shuffle=True, **kwargs)
 
     test_loader = torch.utils.data.DataLoader(
-        AudiobookDataset(test_data, speaker_emb),
+        AudiobookDataset(test_data),
         collate_fn=test_collate,
         batch_size=1, shuffle=False, **kwargs)
 
@@ -161,7 +158,7 @@ if __name__ == '__main__':
 
     for epoch in range(current_epoch + 1, args.epochs + 1):
         print(f'epoch {epoch}')
-        train(args, model, device, train_loader, optimizer, epoch)
+        #train(args, model, device, train_loader, optimizer, epoch)
 
         if epoch % 10 == 0:
             test(model, device, test_loader, checkpoint_dir, epoch)
