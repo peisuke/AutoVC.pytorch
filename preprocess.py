@@ -74,7 +74,7 @@ if __name__ == '__main__':
     speakers = list(filter(lambda x: os.path.isdir(x), speakers))
 
     #### DEBUG
-    speakers = speakers[:5]
+    #speakers = speakers[:5]
 
     random.seed(1234)
     random.shuffle(speakers)
@@ -97,7 +97,7 @@ if __name__ == '__main__':
         wavfiles = sorted(glob.glob(os.path.join(s, '*.wav')))
 
         #### DEBUG
-        wavfiles = wavfiles[:10]
+        #wavfiles = wavfiles[:10]
         
         emb = compute_embed(wavfiles, encoder)
 
@@ -117,7 +117,7 @@ if __name__ == '__main__':
         emb = compute_embed(wavfiles, encoder)
         
         #### DEBUG
-        wavfiles = wavfiles[:10]
+        #wavfiles = wavfiles[:10]
 
         unseen_data[speaker] = {'files': wavfiles, 'emb': emb}
 
