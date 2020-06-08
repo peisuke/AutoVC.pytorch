@@ -6,7 +6,26 @@ The paper link is [here](https://arxiv.org/abs/1905.05879)
 
 # How to use
 
-WIP
+```
+./scripts/downloadVCTK.sh
+```
+
+```
+python preprocess.py --wav-dir ./VCTK-Corpus/wav48/
+```
+
+```
+python train.py
+```
+
+```
+python3 inference.py --output ./output.wav \
+                     --src-wav [path to src wav] \
+                     --src-emb [path to src embedding] \
+                     --tgt-emb [path to target embedding] \
+                     --vocoder [path to vocoder checkpoint] \
+                     --autovc [path to autovc checkpoint]
+```
 
 # Sample Audio
 
