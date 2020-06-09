@@ -1,8 +1,12 @@
-# AutoVC.pytorch
+# AUTOVC: Zero-Shot Voice Style Transfer with Only Autoencoder Loss
 
 This repository is reproduced code of "AutoVC: Zero-Shot Voice Style Transfer with Only Autoencoder Loss"
 
 The paper link is [here](https://arxiv.org/abs/1905.05879)
+
+# Preparation
+
+Pretrained model of WaveNet vocoder is from [author's original repogitory](https://github.com/auspicious3000/autovc)
 
 # How to use
 
