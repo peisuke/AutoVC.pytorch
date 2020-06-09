@@ -33,4 +33,8 @@ python3 inference.py --output ./output.wav \
 
 # Sample Audio
 
-WIP
+[source](https://for-shareing.s3-us-west-2.amazonaws.com/AutoVC/source_male.wav)
+
+[target](https://for-shareing.s3-us-west-2.amazonaws.com/AutoVC/target_female.wav)
+
+[converted](https://for-shareing.s3-us-west-2.amazonaws.com/AutoVC/converted.wav)
