@@ -10,6 +10,7 @@ from spec_augment import spec_augment
 from hparams import hparams as hp
 from utils.dsp import load_wav
 from utils.dsp import melspectrogram
+from utils.dsp import pitch
 
 class AudiobookDataset(torch.utils.data.Dataset):
     def __init__(self, input_data, train=False):
@@ -38,6 +39,12 @@ def pad_seq(x, base=32):
     assert len_pad >= 0
     return np.pad(x, ((0,0), (0,len_pad)), 'constant'), len_pad
 
+def pad_pitch(x, base=32):
+    len_out = int(base * math.ceil(float(x.shape[0])/base))
+    len_pad = len_out - x.shape[0]
+    assert len_pad >= 0
+    return np.pad(x, ((0,len_pad)), 'constant'), len_pad
+
 def train_collate(batch):
     mel_win = hp.seq_len // hp.hop_length
     
@@ -52,19 +59,28 @@ def train_collate(batch):
     wav = [w * 2 ** (np.random.rand() * 2 - 1) for w in wav]
     
     mels = [melspectrogram(w[:-1]) for w in wav]
-    
+    ps = [pitch(w[:-1]) for w in wav]
+   
     # spec augmentation
-    mels = [spec_augment(m) for m in mels]
+    mels_and_ps = [spec_augment(m, p) for m, p in zip(mels, ps)]
+    mels = [m for (m, p) in mels_and_ps]
+    ps = [p.astype(np.int) for (m, p) in mels_and_ps]
     
     emb = [x[1] for x in batch]
     fname = [x[2] for x in batch]
 
     mels = torch.FloatTensor(mels)
+    ps = torch.LongTensor(ps)
     emb = torch.FloatTensor(emb)
-
+    
+    onehot = torch.zeros(ps.shape[0] * ps.shape[1], 256, dtype=torch.float)
+    onehot = onehot.scatter_(1, ps.view(-1).unsqueeze(1), 1)
+    onehot = onehot.view(ps.shape[0], ps.shape[1], 256)
+    ps = onehot
+    
     mels = mels.transpose(2,1)
 
-    return mels, emb
+    return mels, ps, emb
 
 def test_collate(batch):
     wavs = []
@@ -79,10 +95,17 @@ def test_collate(batch):
             embs.append(b[1])
     
     mels = [pad_seq(melspectrogram(w))[0] for w in wavs]
-
+    ps = [pad_pitch(pitch(w))[0] for w in wavs]
+    
     mels = torch.FloatTensor(mels)
+    ps = torch.LongTensor(ps)
     embs = torch.FloatTensor(embs)
+    
+    onehot = torch.zeros(ps.shape[0] * ps.shape[1], hp.dim_pitch, dtype=torch.float)
+    onehot = onehot.scatter_(1, ps.view(-1).unsqueeze(1), 1)
+    onehot = onehot.view(ps.shape[0], ps.shape[1], hp.dim_pitch)
+    ps = onehot
     
     mels = mels.transpose(2,1)
     
-    return mels, embs
+    return mels, ps, embs

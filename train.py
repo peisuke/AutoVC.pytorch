@@ -41,16 +41,17 @@ def train(args, model, device, train_loader, optimizer, epoch, sigma=1.0):
     model.train()
     train_loss = 0
 
-    for batch_idx, (m, e) in enumerate(train_loader):
+    for batch_idx, (m, p, e) in enumerate(train_loader):
         m = m.to(device)
+        p = p.to(device)
         e = e.to(device)
         
         model.zero_grad()
 
-        mel_outputs, mel_outputs_postnet, codes = model(m, e, e)
+        mel_outputs, mel_outputs_postnet, codes = model(m, e, p, e)
 
         m_rec = mel_outputs_postnet
-        codes_rec = model(m_rec, e, None)
+        codes_rec = model(m_rec, e, None, None)
 
         L_recon = ((mel_outputs_postnet - m) ** 2).sum(dim=(1,2)).mean()
         L_recon0 = ((mel_outputs - m) ** 2).sum(dim=(1,2)).mean()
@@ -78,14 +79,15 @@ def test(model, device, test_loader, checkpoint_dir, epoch, sigma=1.0):
     test_loss = 0
 
     with torch.no_grad():
-        for batch_idx, (m, e) in enumerate(test_loader):
+        for batch_idx, (m, p, e) in enumerate(test_loader):
             m = m.to(device)
+            p = p.to(device)
             e = e.to(device)
             
-            mel_outputs, mel_outputs_postnet, codes = model(m, e, e)
+            mel_outputs, mel_outputs_postnet, codes = model(m, e, p, e)
 
             m_rec = mel_outputs_postnet
-            codes_rec = model(m_rec, e, None)
+            codes_rec = model(m_rec, e, None, None)
 
             L_recon = ((mel_outputs_postnet - m) ** 2).sum(dim=(1,2)).mean()
             L_recon0 = ((mel_outputs - m) ** 2).sum(dim=(1,2)).mean()
@@ -146,7 +148,7 @@ if __name__ == '__main__':
         collate_fn=test_collate,
         batch_size=1, shuffle=False, **kwargs)
 
-    model = Generator(hp.dim_neck, hp.dim_emb, hp.dim_pre, hp.freq).to(device)
+    model = Generator(hp.dim_neck, hp.dim_emb, hp.dim_pitch, hp.dim_pre, hp.freq).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     current_epoch = 0

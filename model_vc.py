@@ -101,10 +101,10 @@ class ContentEncoder(nn.Module):
 class Decoder(nn.Module):
     """Decoder module:
     """
-    def __init__(self, dim_neck, dim_emb, dim_pre):
+    def __init__(self, dim_neck, dim_emb, dim_pitch, dim_pre):
         super(Decoder, self).__init__()
         
-        self.lstm1 = nn.LSTM(dim_neck*2+dim_emb, dim_pre, 1, batch_first=True)
+        self.lstm1 = nn.LSTM(dim_neck*2+dim_emb+dim_pitch, dim_pre, 1, batch_first=True)
         
         convolutions = []
         for i in range(3):
@@ -188,15 +188,15 @@ class Postnet(nn.Module):
 
 class Generator(nn.Module):
     """Generator network."""
-    def __init__(self, dim_neck, dim_emb, dim_pre, freq):
+    def __init__(self, dim_neck, dim_emb, dim_pitch, dim_pre, freq):
         super(Generator, self).__init__()
         
         self.style_encoder = StyleEncoder(dim_emb)
         self.encoder = ContentEncoder(dim_neck, dim_emb, freq)
-        self.decoder = Decoder(dim_neck, dim_emb, dim_pre)
+        self.decoder = Decoder(dim_neck, dim_emb, dim_pitch, dim_pre)
         self.postnet = Postnet()
 
-    def forward(self, x, c_org, c_trg):
+    def forward(self, x, c_org, p, c_trg):
         codes = self.encoder(x, c_org)
         if c_trg is None:
             return torch.cat(codes, dim=-1)
@@ -206,7 +206,7 @@ class Generator(nn.Module):
             tmp.append(code.unsqueeze(1).expand(-1,int(x.size(1)/len(codes)),-1))
         code_exp = torch.cat(tmp, dim=1)
         
-        encoder_outputs = torch.cat((code_exp, c_trg.unsqueeze(1).expand(-1,x.size(1),-1)), dim=-1)
+        encoder_outputs = torch.cat((code_exp, c_trg.unsqueeze(1).expand(-1,x.size(1),-1), p), dim=-1)
         
         mel_outputs = self.decoder(encoder_outputs)
                 

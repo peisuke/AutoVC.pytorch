@@ -14,8 +14,9 @@ class hparams:
     bits = 12
     seq_len = seq_len_factor * hop_length
     
-    dim_neck = 32
+    dim_neck = 16
     dim_emb = 256
+    dim_pitch = 256
     dim_pre = 512
     freq = 32
     

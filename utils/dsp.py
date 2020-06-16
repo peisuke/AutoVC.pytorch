@@ -1,5 +1,5 @@
 import numpy as np
-import librosa, math
+import librosa, math, pyworld
 from hparams import hparams as hp
 
 def load_wav(filename):
@@ -33,3 +33,21 @@ def melspectrogram(y):
 
 def stft(y):
     return librosa.stft(y=y, n_fft=hp.n_fft, hop_length=hp.hop_length, win_length=hp.win_length)
+
+def pitch(x):
+    x = x.astype(np.float)
+    f0, t = pyworld.dio(x, hp.sample_rate, frame_period=16)
+    #f0 = pyworld.stonemask(x, f0, t, hp.sample_rate)
+    
+    ret = np.zeros(f0.shape, dtype=np.int)
+    idx = np.nonzero(f0)
+    
+    if len(idx[0]) > 0:
+        f0[idx] = np.log(f0[idx])
+        nonzero_f0 = f0[idx]
+        nonzero_f0 = (((nonzero_f0 - nonzero_f0.mean()) / (nonzero_f0.std() + 1e-5)) / 4 + 0.5)
+        nonzero_f0 = np.clip(nonzero_f0, 0, 1)
+        nonzero_f0 = (nonzero_f0 * (hp.dim_pitch-2)).astype(np.int) + 1
+        ret[idx] = nonzero_f0
+    
+    return ret

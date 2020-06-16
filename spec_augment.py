@@ -35,7 +35,7 @@ def liftPts(p, cp):
     pLift[:,3:] = R
     return pLift
 
-def spec_augment(spec, W=32, T=24, F=16):
+def spec_augment(spec, pitch, W=32, T=24, F=16):
     # Nframe : number of spectrum frame
     Nframe = spec.shape[1]
 
@@ -61,7 +61,7 @@ def spec_augment(spec, W=32, T=24, F=16):
     dst = dst.astype(np.float)
 
     # source control points
-    xs, ys = src[:,0],src[:,1]
+    xs, ys = src[:,0], src[:,1]
     cps = np.vstack([xs, ys]).T
 
     # target control points
@@ -89,10 +89,16 @@ def spec_augment(spec, W=32, T=24, F=16):
     pgLift = liftPts(gps, cps) # [N x (K+3)]
     xgt = np.dot(pgLift, cx.T)     
     spec_warped = np.zeros_like(spec)
+    pitch_warped = np.zeros_like(pitch)
+    
     for f_ind in range(Nbin):
         spec_tmp = spec[f_ind,:]
-        func = interpolate.interp1d(xgt, spec_tmp,fill_value="extrapolate")
+        func = interpolate.interp1d(xgt, spec_tmp, fill_value="extrapolate")
         xnew = np.linspace(0, Nframe-1,Nframe)
         spec_warped[f_ind,:] = func(xnew)
-
-    return spec_warped
+        
+    func = interpolate.interp1d(xgt, pitch, fill_value="extrapolate")
+    xnew = np.linspace(0, Nframe-1,Nframe)
+    pitch_warped = func(xnew)
+    
+    return spec_warped, pitch_warped
